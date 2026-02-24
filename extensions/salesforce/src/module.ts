@@ -5,6 +5,7 @@ import { createCaseNode, onErrorCreateCase, onSuccessCreateCase } from "./nodes/
 import { getCaseNode, onErrorGetCase, onSuccessGetCase } from "./nodes/getCase";
 import { entityRequestNode, onErrorEntityRequest, onSuccessEntityRequest } from "./nodes/entityRequest";
 import { onFoundContact, onNotFoundContact, searchContactNode } from "./nodes/searchContact";
+import { onSuccessUploadFile, onErrorUploadFile, uploadFileNode } from "./nodes/uploadFile";
 
 export default createExtension({
 	nodes: [
@@ -26,7 +27,11 @@ export default createExtension({
 
 		entityRequestNode,
 		onSuccessEntityRequest,
-		onErrorEntityRequest
+		onErrorEntityRequest,
+
+		uploadFileNode,
+		onSuccessUploadFile,
+		onErrorUploadFile
 	],
 
 	connections: [
