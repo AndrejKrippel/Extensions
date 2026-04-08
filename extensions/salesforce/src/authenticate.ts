@@ -1,9 +1,5 @@
 import axios, { AxiosRequestConfig, AxiosResponse } from "axios";
 
-/* -------------------------------------------------------------------------- */
-/*                                    Types                                   */
-/* -------------------------------------------------------------------------- */
-
 interface IConnection {
     oauthConnection: {
         consumerKey: string;
@@ -36,10 +32,6 @@ export interface ISalesforceClient {
     };
 }
 
-/* -------------------------------------------------------------------------- */
-/*                           Token Cache & Helpers                             */
-/* -------------------------------------------------------------------------- */
-
 interface ICachedSalesforceToken {
     accessToken: string;
     instanceUrl: string;
@@ -47,20 +39,11 @@ interface ICachedSalesforceToken {
     issuedAt: number;
 }
 
-/**
- * In‑memory token cache (runtime‑scoped, Cognigy‑safe)
- */
 let cachedSalesforceToken: ICachedSalesforceToken | null = null;
 
-/**
- * Conservative TTL for client‑credentials tokens
- */
 const SALESFORCE_TOKEN_TTL_MS = 15 * 60 * 1000;
 
-const isTokenValid = (
-    instanceUrl: string,
-    apiVersion: string
-): boolean => {
+const isTokenValid = (instanceUrl: string, apiVersion: string): boolean => {
     if (!cachedSalesforceToken) {
         return false;
     }
@@ -72,20 +55,14 @@ const isTokenValid = (
         return false;
     }
 
-    const age = Date.now() - cachedSalesforceToken.issuedAt;
-    return age < SALESFORCE_TOKEN_TTL_MS;
+    return Date.now() - cachedSalesforceToken.issuedAt < SALESFORCE_TOKEN_TTL_MS;
 };
 
 export const getCachedSalesforceToken = () => cachedSalesforceToken;
 
-/* -------------------------------------------------------------------------- */
-/*                      Salesforce Client Factory                              */
-/* -------------------------------------------------------------------------- */
-
 const createSalesforceClient = (
     token: ICachedSalesforceToken
 ): ISalesforceClient => {
-
     const { accessToken, instanceUrl, apiVersion } = token;
 
     const http = axios.create({
@@ -102,7 +79,6 @@ const createSalesforceClient = (
         soql: string,
         options?: { autoFetch?: boolean; maxFetch?: number }
     ): Promise<ISalesforceQueryResult> => {
-
         const autoFetch = Boolean(options?.autoFetch);
         const maxFetch = Number(options?.maxFetch ?? 0);
         let fetchCount = 0;
@@ -121,11 +97,10 @@ const createSalesforceClient = (
             { q: soql }
         );
 
-        let records: any[] = firstResponse?.records ?? [];
+        let records = firstResponse?.records ?? [];
         let done = Boolean(firstResponse?.done);
-        let nextRecordsUrl: string | undefined = firstResponse?.nextRecordsUrl;
-        let totalSize: number | undefined =
-            firstResponse?.totalSize ?? records.length;
+        let nextRecordsUrl = firstResponse?.nextRecordsUrl;
+        let totalSize = firstResponse?.totalSize ?? records.length;
 
         if (autoFetch) {
             while (
@@ -201,23 +176,17 @@ const createSalesforceClient = (
     };
 };
 
-/* -------------------------------------------------------------------------- */
-/*                               Authentication                               */
-/* -------------------------------------------------------------------------- */
-
 export const authenticate = async (
     oauthConnection: IConnection["oauthConnection"],
     apiVersion: string = "62.0"
 ): Promise<ISalesforceClient> => {
-
     const { consumerKey, consumerSecret, instanceUrl } = oauthConnection;
     const salesforceAPIVersion = apiVersion || "62.0";
 
-    /**
-     * Silent token reuse
-     */
     if (isTokenValid(instanceUrl, salesforceAPIVersion)) {
-        return createSalesforceClient(cachedSalesforceToken as ICachedSalesforceToken);
+        return createSalesforceClient(
+            cachedSalesforceToken as ICachedSalesforceToken
+        );
     }
 
     const data =
