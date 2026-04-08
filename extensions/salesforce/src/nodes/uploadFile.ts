@@ -1,9 +1,7 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.onErrorUploadFile = exports.onSuccessUploadFile = exports.uploadFileNode = void 0;
-const extension_tools_1 = require("@cognigy/extension-tools");
-const authenticate_1 = require("../authenticate");
-exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
+import { createNodeDescriptor, INodeFunctionBaseParams } from "@cognigy/extension-tools";
+import { authenticate } from "../authenticate";
+
+export const uploadFileNode = createNodeDescriptor({
     type: "uploadFile",
     defaultLabel: {
         deDE: "Datei hochladen",
@@ -18,7 +16,7 @@ exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
             key: "oauthConnection",
             label: {
                 deDE: "Salesforce Connected App",
-                default: "Salesforce Connected App",
+                default: "Salesforce Connected App"
             },
             type: "connection",
             params: {
@@ -31,34 +29,34 @@ exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
             type: "cognigyText",
             label: {
                 deDE: "Datei Daten",
-                default: "File Data",
+                default: "File Data"
             },
             params: {
                 required: true
-            },
+            }
         },
         {
             key: "fileName",
             type: "cognigyText",
             label: {
                 deDE: "Datei Name",
-                default: "File Name",
+                default: "File Name"
             },
             params: {
                 required: true
-            },
+            }
         },
         {
             key: "fileDescription",
             type: "cognigyText",
             label: {
                 deDE: "Datei Beschreibung",
-                default: "File Description",
+                default: "File Description"
             },
             defaultValue: "",
             params: {
                 required: false
-            },
+            }
         },
         {
             key: "storeLocation",
@@ -70,14 +68,8 @@ exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
             defaultValue: "input",
             params: {
                 options: [
-                    {
-                        label: "Input",
-                        value: "input"
-                    },
-                    {
-                        label: "Context",
-                        value: "context"
-                    }
+                    { label: "Input", value: "input" },
+                    { label: "Context", value: "context" }
                 ],
                 required: true
             }
@@ -107,7 +99,7 @@ exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
                 key: "storeLocation",
                 value: "context"
             }
-        },
+        }
     ],
     sections: [
         {
@@ -117,11 +109,7 @@ exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
                 default: "Result Storage"
             },
             defaultCollapsed: true,
-            fields: [
-                "storeLocation",
-                "inputKey",
-                "contextKey",
-            ]
+            fields: ["storeLocation", "inputKey", "contextKey"]
         }
     ],
     form: [
@@ -135,47 +123,70 @@ exports.uploadFileNode = extension_tools_1.createNodeDescriptor({
         color: "#009EDB"
     },
     dependencies: {
-        children: [
-            "onSuccessUploadFile",
-            "onErrorUploadFile"
-        ]
+        children: ["onSuccessUploadFile", "onErrorUploadFile"]
     },
-    function: async ({ cognigy, config, childConfigs }) => {
+
+    function: async (
+        { cognigy, config, childConfigs }: INodeFunctionBaseParams
+    ) => {
         const { api } = cognigy;
-        const { oauthConnection, fileData, fileName, fileDescription, storeLocation, contextKey, inputKey } = config;
+        const {
+            oauthConnection,
+            fileData,
+            fileName,
+            fileDescription,
+            storeLocation,
+            contextKey,
+            inputKey
+        } = config as any;
+
         try {
-            const salesforceConnection = await authenticate_1.authenticate(oauthConnection);
+            const salesforceConnection = await authenticate(oauthConnection);
+
             const payload = {
                 Title: fileName,
                 PathOnClient: fileName,
                 Description: fileDescription || "",
                 VersionData: fileData
             };
-            const record = await salesforceConnection.sobject("ContentVersion").create(payload);
-            const onSuccessChild = childConfigs.find(child => child.type === "onSuccessUploadFile");
+
+            const record = await salesforceConnection
+                .sobject("ContentVersion")
+                .create(payload);
+
+            const onSuccessChild = childConfigs.find(
+                child => child.type === "onSuccessUploadFile"
+            );
+
             api.setNextNode(onSuccessChild.id);
+
             if (storeLocation === "context") {
                 api.addToContext(contextKey, record, "simple");
-            }
-            else {
+            } else {
+                // Cognigy Input typing is very loose
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 api.addToInput(inputKey, record);
             }
-        }
-        catch (error) {
-            const onErrorChild = childConfigs.find(child => child.type === "onErrorUploadFile");
+        } catch (error: any) {
+            const onErrorChild = childConfigs.find(
+                child => child.type === "onErrorUploadFile"
+            );
+
             api.setNextNode(onErrorChild.id);
+
             if (storeLocation === "context") {
                 api.addToContext(contextKey, error.message, "simple");
-            }
-            else {
+            } else {
+                // eslint-disable-next-line @typescript-eslint/ban-ts-comment
                 // @ts-ignore
                 api.addToInput(inputKey, error.message);
             }
         }
     }
 });
-exports.onSuccessUploadFile = extension_tools_1.createNodeDescriptor({
+
+export const onSuccessUploadFile = createNodeDescriptor({
     type: "onSuccessUploadFile",
     parentType: "uploadFile",
     defaultLabel: "On Success",
@@ -197,7 +208,8 @@ exports.onSuccessUploadFile = extension_tools_1.createNodeDescriptor({
         showIcon: false
     }
 });
-exports.onErrorUploadFile = extension_tools_1.createNodeDescriptor({
+
+export const onErrorUploadFile = createNodeDescriptor({
     type: "onErrorUploadFile",
     parentType: "uploadFile",
     defaultLabel: "On Error",
@@ -219,4 +231,3 @@ exports.onErrorUploadFile = extension_tools_1.createNodeDescriptor({
         showIcon: false
     }
 });
-//# sourceMappingURL=uploadFile.js.map
